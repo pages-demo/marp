@@ -22,8 +22,8 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Marp CLI
-        run: npm install -g @marp-team/marp-cli
+      # - name: Install Marp CLI
+      #   run: npm install -g @marp-team/marp-cli
 
       - name: Build slides
         run: bash ./build-slides.sh
