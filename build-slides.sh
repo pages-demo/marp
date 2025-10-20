@@ -11,26 +11,41 @@ mkdir -p "$OUTPUT_DIR"
 
 echo "🎞️ Generating all slides from '$SOURCE_DIR'..."
 
-# Step 1: Generate all HTML slides in-place under src/
+# Generate all HTML slides in-place under src/
 npx @marp-team/marp-cli@latest "$SOURCE_DIR/**/*.md"
 
-# Step 2: Move generated .html files to dist/
-find "$SOURCE_DIR" -type f -name "*.html" | while read -r htmlfile; do
-  relpath="${htmlfile#$SOURCE_DIR/}"      # e.g. talks/oop.html or intro/index.html
-  relbase="${relpath%.html}"              # e.g. talks/oop or intro/index
+# Move generated .html files into dist/
+find "$SOURCE_DIR" -type f -name "*.html" | while IFS= read -r htmlfile; do
+  # relpath e.g. "talks/oop.html" or "index.html" or "lectures/index.html"
+  relpath="${htmlfile#"$SOURCE_DIR"/}"
+  dir="$(dirname "$relpath")"           # e.g. "talks" or "." for root
+  base="$(basename "$relpath")"         # e.g. "oop.html"
+  name="${base%.html}"                  # e.g. "oop" or "index"
 
-  # If the file is named 'index.html', don't create an extra index/ directory
-  if [[ "$relbase" == */index ]]; then
-    outdir="$OUTPUT_DIR/${relbase%/index}"
-    mkdir -p "$outdir"
-    mv "$htmlfile" "$outdir/index.html"
-    echo "🧩 Moved: $htmlfile → $outdir/index.html"
-  else
-    outdir="$OUTPUT_DIR/$relbase"
-    mkdir -p "$outdir"
-    mv "$htmlfile" "$outdir/index.html"
-    echo "🧩 Moved: $htmlfile → $outdir/index.html"
+  # normalize dir: if it's "." then make it empty
+  if [ "$dir" = "." ]; then
+    dir=""
   fi
+
+  if [ "$name" = "index" ]; then
+    # keep index in the same directory inside dist
+    if [ -n "$dir" ]; then
+      outdir="$OUTPUT_DIR/$dir"
+    else
+      outdir="$OUTPUT_DIR"
+    fi
+  else
+    # create directory dist/<dir>/<name>/ and move there as index.html
+    if [ -n "$dir" ]; then
+      outdir="$OUTPUT_DIR/$dir/$name"
+    else
+      outdir="$OUTPUT_DIR/$name"
+    fi
+  fi
+
+  mkdir -p "$outdir"
+  echo "🧩 Moving: $htmlfile → $outdir/index.html"
+  mv -f "$htmlfile" "$outdir/index.html"
 done
 
 echo "✅ All slides built successfully in '$OUTPUT_DIR'"
