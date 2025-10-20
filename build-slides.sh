@@ -5,23 +5,25 @@ set -e
 SOURCE_DIR="./src"
 OUTPUT_DIR="./dist"
 
-# Clean previous build
+# Clean and prepare output
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
-# Find all markdown files recursively in ./src
-find "$SOURCE_DIR" -type f -name "*.md" | while read -r file; do
-  # Get relative path inside src/ (e.g. intro.md or subdir/lecture.md)
-  relpath="${file#$SOURCE_DIR/}"
-  relbase="${relpath%.md}"
+echo "🎞️ Generating all slides from '$SOURCE_DIR'..."
 
-  # Create output directory like: dist/intro/
+# Step 1: Generate all HTML slides in-place under src/
+npx @marp-team/marp-cli@latest "$SOURCE_DIR/**/*.md"
+
+# Step 2: Move generated .html files to dist/<name>/index.html
+find "$SOURCE_DIR" -type f -name "*.html" | while read -r htmlfile; do
+  relpath="${htmlfile#"$SOURCE_DIR"/}"          # e.g. talks/oop.html
+  relbase="${relpath%.html}"                  # e.g. talks/oop
   outdir="$OUTPUT_DIR/$relbase"
-  mkdir -p "$outdir"
 
-  echo "🎞️  Generating $outdir/index.html"
-  npx -y @marp-team/marp-cli@latest "$file" -o "$outdir/index.html" --html --allow-local-files
+  mkdir -p "$outdir"
+  mv "$htmlfile" "$outdir/index.html"
+
+  echo "🧩 Moved: $htmlfile → $outdir/index.html"
 done
 
-echo "✅ All slides built successfully into '$OUTPUT_DIR'"
-
+echo "✅ All slides built successfully in '$OUTPUT_DIR'"
